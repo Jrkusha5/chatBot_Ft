@@ -12,6 +12,7 @@ psycopg2-binary
 python-dotenv
 httpx
 tiktoken
+python-multipart
 redis
 langchain-google-genai
 google-genai
