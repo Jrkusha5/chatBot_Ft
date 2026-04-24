@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     database_url: str = Field(default="sqlite:///./chatbot.db", alias="DATABASE_URL")
     chroma_persist_dir: str = Field(default="./.chroma", alias="CHROMA_PERSIST_DIR")
+    chroma_collection_name: str = Field(default="chatbot_knowledge", alias="CHROMA_COLLECTION_NAME")
     model_name: str = Field(default="gpt-4o-mini", alias="MODEL_NAME")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
     top_k: int = Field(default=4, alias="TOP_K")
