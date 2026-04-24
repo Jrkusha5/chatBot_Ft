@@ -27,3 +27,13 @@ class SourceRepository:
         self.db.commit()
         self.db.refresh(source)
         return source
+
+    def list_sources(self) -> list[Source]:
+        return self.db.query(Source).order_by(Source.created_at.desc()).all()
+
+    def get_source(self, source_id: str) -> Source | None:
+        return self.db.query(Source).filter(Source.id == source_id).first()
+
+    def delete_source(self, source: Source) -> None:
+        self.db.delete(source)
+        self.db.commit()
