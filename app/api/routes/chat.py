@@ -7,6 +7,7 @@ from app.schemas.chat import ChatRequest, ChatResponse, Citation
 from app.services.rag.generator import generate_answer
 from app.services.rag.prompt_builder import build_rag_prompt
 from app.services.retrieval.retriever import Retriever
+from app.services.telemetry.metrics import metrics_store
 
 router = APIRouter(tags=["chat"])
 
@@ -54,6 +55,7 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         content=answer,
         confidence=confidence,
     )
+    metrics_store.chat_requests += 1
 
     return ChatResponse(
         session_id=session.id,

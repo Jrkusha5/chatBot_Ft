@@ -11,6 +11,7 @@ from app.services.ingestion.cleaner import clean_text
 from app.services.ingestion.embedder import embed_texts
 from app.services.ingestion.indexer import index_chunks
 from app.services.ingestion.loaders import extract_text_from_file
+from app.services.telemetry.metrics import metrics_store
 
 router = APIRouter(prefix="/ingest", tags=["ingestion"])
 
@@ -57,6 +58,7 @@ async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db
     db.add(source)
     db.commit()
     db.refresh(source)
+    metrics_store.ingest_requests += 1
 
     return IngestResponse(
         source_id=source.id,
