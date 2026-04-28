@@ -77,7 +77,7 @@ async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db
     db.add(source)
     db.commit()
     db.refresh(source)
-    metrics_store.ingest_requests += 1
+    metrics_store.observe_ingest_request()
 
     return IngestResponse(
         source_id=source.id,

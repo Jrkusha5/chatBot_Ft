@@ -19,7 +19,7 @@ def create_feedback(payload: FeedbackCreateRequest, db: Session = Depends(get_db
         source_id=payload.source_id,
         message_id=payload.message_id,
     )
-    metrics_store.feedback_submissions += 1
+    metrics_store.observe_feedback_submission()
     return FeedbackResponse(
         id=feedback.id,
         chat_session_id=feedback.chat_session_id,

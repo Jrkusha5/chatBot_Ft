@@ -62,7 +62,7 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         content=answer,
         confidence=confidence,
     )
-    metrics_store.chat_requests += 1
+    metrics_store.observe_chat_request()
 
     return ChatResponse(
         session_id=session.id,
