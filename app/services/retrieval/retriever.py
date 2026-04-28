@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import get_settings
+from app.schemas.chat import SourceFilters
 from app.services.ingestion.embedder import embed_texts
 from app.vectorstore.collection_manager import ensure_default_collection
 
@@ -24,6 +25,7 @@ class Retriever:
         *,
         top_k: int | None = None,
         source_id: str | None = None,
+        source_filters: SourceFilters | None = None,
     ) -> list[RetrievedChunk]:
         if not query.strip():
             return []
@@ -32,7 +34,7 @@ class Retriever:
         collection = ensure_default_collection()
         limit = top_k or self.settings.top_k
 
-        where_filter = {"source_id": source_id} if source_id else None
+        where_filter = _build_where_filter(source_id=source_id, source_filters=source_filters)
         results = collection.query(
             query_embeddings=[query_embedding],
             n_results=limit,
@@ -63,3 +65,32 @@ def _normalize_query_results(results: dict[str, Any]) -> list[RetrievedChunk]:
             )
         )
     return chunks
+
+
+def _build_where_filter(
+    *,
+    source_id: str | None,
+    source_filters: SourceFilters | None,
+) -> dict[str, Any] | None:
+    filters: list[dict[str, Any]] = []
+
+    if source_id:
+        filters.append({"source_id": source_id})
+
+    if source_filters:
+        if source_filters.tenant_id:
+            filters.append({"tenant_id": source_filters.tenant_id})
+        if source_filters.domain:
+            filters.append({"domain": source_filters.domain})
+        if source_filters.tag:
+            filters.append({"tag": source_filters.tag})
+        if source_filters.date_from:
+            filters.append({"document_date": {"$gte": source_filters.date_from}})
+        if source_filters.date_to:
+            filters.append({"document_date": {"$lte": source_filters.date_to}})
+
+    if not filters:
+        return None
+    if len(filters) == 1:
+        return filters[0]
+    return {"$and": filters}

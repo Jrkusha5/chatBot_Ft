@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.repositories.chat_repo import ChatRepository
 from app.schemas.chat import ChatRequest, ChatResponse, Citation
@@ -10,6 +11,7 @@ from app.services.retrieval.retriever import Retriever
 from app.services.telemetry.metrics import metrics_store
 
 router = APIRouter(tags=["chat"])
+settings = get_settings()
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -22,6 +24,7 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             payload.message,
             top_k=payload.top_k,
             source_id=payload.source_id,
+            source_filters=payload.source_filters,
         )
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -38,8 +41,10 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     ]
     confidence = max((citation.score for citation in citations), default=0.0)
 
-    if not chunks:
+    has_context = bool(chunks) and confidence >= settings.confidence_threshold
+    if not has_context:
         answer = "I don't know based on the available documents."
+        citations = []
     else:
         prompt = build_rag_prompt(payload.message, chunks)
         try:

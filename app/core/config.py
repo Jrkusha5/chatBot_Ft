@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     top_k: int = Field(default=4, alias="TOP_K")
     chunk_size: int = Field(default=800, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(default=120, alias="CHUNK_OVERLAP")
+    confidence_threshold: float = Field(default=0.4, alias="CONFIDENCE_THRESHOLD")
 
 
 @lru_cache(maxsize=1)
