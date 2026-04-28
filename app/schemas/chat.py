@@ -21,6 +21,8 @@ class Citation(BaseModel):
     source_id: str | None = None
     source_name: str | None = None
     source_type: str | None = None
+    page: int | None = None
+    section: str | None = None
     chunk_id: str
     score: float
 

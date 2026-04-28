@@ -34,6 +34,8 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             source_id=chunk.metadata.get("source_id"),
             source_name=chunk.metadata.get("source_name"),
             source_type=chunk.metadata.get("source_type"),
+            page=chunk.metadata.get("page"),
+            section=chunk.metadata.get("section"),
             chunk_id=chunk.chunk_id,
             score=chunk.score,
         )

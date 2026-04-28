@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.repositories.source_repo import SourceRepository
 from app.schemas.ingest import IngestResponse
-from app.services.ingestion.chunker import chunk_text
+from app.services.ingestion.chunker import ChunkPayload, chunk_text_with_metadata
 from app.services.ingestion.cleaner import clean_text
 from app.services.ingestion.embedder import embed_texts
 from app.services.ingestion.indexer import index_chunks
@@ -26,13 +26,24 @@ async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
     try:
-        raw_text, source_type = extract_text_from_file(file.filename, content)
+        segments, source_type = extract_text_from_file(file.filename, content)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    text = clean_text(raw_text)
-    chunks = chunk_text(text)
-    if not chunks:
+    chunk_payloads: list[ChunkPayload] = []
+    for segment in segments:
+        cleaned = clean_text(segment.text)
+        if not cleaned:
+            continue
+        chunk_payloads.extend(
+            chunk_text_with_metadata(
+                cleaned,
+                page=segment.page,
+                section=segment.section,
+            )
+        )
+
+    if not chunk_payloads:
         raise HTTPException(status_code=400, detail="No usable text extracted from file")
 
     content_hash = hashlib.sha256(content).hexdigest()
@@ -45,6 +56,7 @@ async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db
         chunks_indexed=0,
     )
 
+    chunks = [payload.content for payload in chunk_payloads]
     embeddings = embed_texts(chunks)
     total_chunks = index_chunks(
         source_id=source.id,
@@ -52,6 +64,13 @@ async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db
         source_type=source.source_type,
         chunks=chunks,
         embeddings=embeddings,
+        chunk_metadatas=[
+            {
+                "page": payload.page,
+                "section": payload.section,
+            }
+            for payload in chunk_payloads
+        ],
     )
 
     source.chunks_indexed = total_chunks

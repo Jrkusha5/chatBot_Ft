@@ -1,4 +1,13 @@
+from dataclasses import dataclass
+
 from app.core.config import get_settings
+
+
+@dataclass
+class ChunkPayload:
+    content: str
+    page: int | None = None
+    section: str | None = None
 
 
 def chunk_text(text: str) -> list[str]:
@@ -17,3 +26,15 @@ def chunk_text(text: str) -> list[str]:
         if start + chunk_size >= len(text):
             break
     return chunks
+
+
+def chunk_text_with_metadata(
+    text: str,
+    *,
+    page: int | None = None,
+    section: str | None = None,
+) -> list[ChunkPayload]:
+    return [
+        ChunkPayload(content=chunk, page=page, section=section)
+        for chunk in chunk_text(text)
+    ]
