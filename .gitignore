@@ -7,6 +7,14 @@ node_modules/
 dist/
 build/
 
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
 # Logs and OS/editor files
 *.log
 .DS_Store
