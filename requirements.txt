@@ -4,7 +4,6 @@ pydantic
 pydantic-settings
 langchain
 chromadb
-openai
 pypdf
 beautifulsoup4
 sqlalchemy

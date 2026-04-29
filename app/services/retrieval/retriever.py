@@ -30,7 +30,7 @@ class Retriever:
         if not query.strip():
             return []
 
-        query_embedding = embed_texts([query])[0]
+        query_embedding = embed_texts([query], for_query=True)[0]
         collection = ensure_default_collection()
         limit = top_k or self.settings.top_k
 

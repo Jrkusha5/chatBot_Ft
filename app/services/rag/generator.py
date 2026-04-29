@@ -1,20 +1,21 @@
-from openai import OpenAI
-
 from app.core.config import get_settings
+from app.services.gemini_client import get_gemini_client
 
 
 def generate_answer(prompt: str) -> str:
     settings = get_settings()
-    if not settings.openai_api_key:
-        raise ValueError("OPENAI_API_KEY is not configured")
+    client = get_gemini_client()
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    response = client.chat.completions.create(
+    response = client.models.generate_content(
         model=settings.model_name,
-        temperature=0.2,
-        messages=[
-            {"role": "system", "content": "You answer questions using provided context."},
-            {"role": "user", "content": prompt},
-        ],
+        contents=prompt,
+        config={
+            "system_instruction": (
+                "You answer questions using only the provided context in the user message. "
+                "If the context is insufficient, say you don't know."
+            ),
+            "temperature": 0.2,
+        },
     )
-    return response.choices[0].message.content or "I don't know based on available context."
+    text = response.text
+    return text.strip() if text else "I don't know based on available context."
