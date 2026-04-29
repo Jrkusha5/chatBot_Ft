@@ -3,6 +3,7 @@ import hashlib
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.repositories.source_repo import SourceRepository
 from app.schemas.ingest import IngestResponse
@@ -17,11 +18,31 @@ router = APIRouter(prefix="/ingest", tags=["ingestion"])
 
 
 @router.post("/file", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
-async def ingest_file(file: UploadFile = File(...), db: Session = Depends(get_db)) -> IngestResponse:
+async def ingest_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> IngestResponse:
+    settings = get_settings()
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is required")
+    if len(file.filename) > 255:
+        raise HTTPException(status_code=400, detail="Filename is too long")
 
-    content = await file.read()
+    max_bytes = settings.max_upload_bytes
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        piece = await file.read(1024 * 1024)
+        if not piece:
+            break
+        total += len(piece)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds maximum size of {max_bytes} bytes",
+            )
+        chunks.append(piece)
+    content = b"".join(chunks)
     if not content:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 

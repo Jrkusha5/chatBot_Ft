@@ -11,11 +11,17 @@ from app.services.retrieval.retriever import Retriever
 from app.services.telemetry.metrics import metrics_store
 
 router = APIRouter(tags=["chat"])
-settings = get_settings()
 
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+    settings = get_settings()
+    if len(payload.message) > settings.max_chat_message_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"message exceeds maximum length of {settings.max_chat_message_chars} characters",
+        )
+
     chat_repo = ChatRepository(db)
     retriever = Retriever()
 

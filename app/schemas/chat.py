@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.core.limits import CHAT_MESSAGE_HARD_MAX, SESSION_ID_HARD_MAX
+
 
 class SourceFilters(BaseModel):
     tenant_id: str | None = None
@@ -10,8 +12,8 @@ class SourceFilters(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    session_id: str
-    message: str = Field(min_length=1)
+    session_id: str = Field(min_length=1, max_length=SESSION_ID_HARD_MAX)
+    message: str = Field(min_length=1, max_length=CHAT_MESSAGE_HARD_MAX)
     top_k: int | None = Field(default=None, ge=1, le=20)
     source_id: str | None = None
     source_filters: SourceFilters | None = None

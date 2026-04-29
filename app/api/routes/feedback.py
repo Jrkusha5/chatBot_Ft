@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.repositories.feedback_repo import FeedbackRepository
 from app.schemas.feedback import FeedbackCreateRequest, FeedbackResponse
@@ -11,6 +12,13 @@ router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 @router.post("", response_model=FeedbackResponse)
 def create_feedback(payload: FeedbackCreateRequest, db: Session = Depends(get_db)) -> FeedbackResponse:
+    settings = get_settings()
+    if payload.comment is not None and len(payload.comment) > settings.max_feedback_comment_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"comment exceeds maximum length of {settings.max_feedback_comment_chars} characters",
+        )
+
     repo = FeedbackRepository(db)
     feedback = repo.create_feedback(
         chat_session_id=payload.chat_session_id,

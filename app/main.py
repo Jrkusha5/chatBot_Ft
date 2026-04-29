@@ -1,5 +1,8 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi import Request
+from starlette.responses import JSONResponse
 
 from app.api.routes.health import router as health_router
 from app.api.routes.ingest import router as ingest_router
@@ -13,6 +16,7 @@ from app.db.session import init_db
 from app.services.telemetry.metrics import metrics_store, now_ms
 from app.vectorstore.collection_manager import ensure_default_collection
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 configure_logging(settings.log_level)
 
@@ -26,6 +30,31 @@ app.include_router(metrics_router)
 
 
 @app.middleware("http")
+async def limit_json_request_size(request: Request, call_next):
+    """Reject oversized JSON bodies early (does not apply to multipart /ingest)."""
+    if request.method not in ("POST", "PUT", "PATCH"):
+        return await call_next(request)
+    path = request.url.path
+    if path.startswith("/ingest"):
+        return await call_next(request)
+    cfg = get_settings()
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            size = int(content_length)
+        except ValueError:
+            return await call_next(request)
+        if size > cfg.max_json_body_bytes:
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "detail": f"Request body exceeds maximum size of {cfg.max_json_body_bytes} bytes",
+                },
+            )
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
     start = now_ms()
     response = await call_next(request)
@@ -36,5 +65,11 @@ async def metrics_middleware(request: Request, call_next):
 
 @app.on_event("startup")
 def on_startup() -> None:
+    cfg = get_settings()
+    if cfg.app_env.lower() == "production":
+        logger.warning(
+            "APP_ENV=production: configure GEMINI_API_KEY, DATABASE_URL, and other secrets via your "
+            "hosting provider (environment or secret manager). Do not rely on a committed .env file."
+        )
     init_db()
     ensure_default_collection()

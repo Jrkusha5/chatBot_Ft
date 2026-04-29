@@ -1,7 +1,16 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.limits import (
+    CHAT_MESSAGE_HARD_MAX,
+    DEFAULT_MAX_CHAT_MESSAGE_CHARS,
+    DEFAULT_MAX_FEEDBACK_COMMENT_CHARS,
+    DEFAULT_MAX_JSON_BODY_BYTES,
+    DEFAULT_MAX_UPLOAD_BYTES,
+    FEEDBACK_COMMENT_HARD_MAX,
+)
 
 
 class Settings(BaseSettings):
@@ -24,6 +33,41 @@ class Settings(BaseSettings):
     chunk_size: int = Field(default=800, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(default=120, alias="CHUNK_OVERLAP")
     confidence_threshold: float = Field(default=0.4, alias="CONFIDENCE_THRESHOLD")
+
+    max_upload_bytes: int = Field(default=DEFAULT_MAX_UPLOAD_BYTES, alias="MAX_UPLOAD_BYTES")
+    max_json_body_bytes: int = Field(default=DEFAULT_MAX_JSON_BODY_BYTES, alias="MAX_JSON_BODY_BYTES")
+    max_chat_message_chars: int = Field(
+        default=DEFAULT_MAX_CHAT_MESSAGE_CHARS,
+        alias="MAX_CHAT_MESSAGE_CHARS",
+    )
+    max_feedback_comment_chars: int = Field(
+        default=DEFAULT_MAX_FEEDBACK_COMMENT_CHARS,
+        alias="MAX_FEEDBACK_COMMENT_CHARS",
+    )
+
+    @field_validator("max_upload_bytes")
+    @classmethod
+    def _clamp_upload_bytes(cls, value: int) -> int:
+        minimum = 1024 * 1024  # 1 MiB floor
+        maximum = 100 * 1024 * 1024  # 100 MiB ceiling
+        return max(minimum, min(value, maximum))
+
+    @field_validator("max_json_body_bytes")
+    @classmethod
+    def _clamp_json_body_bytes(cls, value: int) -> int:
+        minimum = 16 * 1024  # 16 KiB
+        maximum = 2 * 1024 * 1024  # 2 MiB
+        return max(minimum, min(value, maximum))
+
+    @field_validator("max_chat_message_chars")
+    @classmethod
+    def _clamp_chat_message_chars(cls, value: int) -> int:
+        return max(256, min(value, CHAT_MESSAGE_HARD_MAX))
+
+    @field_validator("max_feedback_comment_chars")
+    @classmethod
+    def _clamp_feedback_comment_chars(cls, value: int) -> int:
+        return max(1, min(value, FEEDBACK_COMMENT_HARD_MAX))
 
 
 @lru_cache(maxsize=1)
