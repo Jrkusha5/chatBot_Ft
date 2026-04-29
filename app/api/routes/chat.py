@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.rate_limit import (
+    chat_session_bucket,
+    dynamic_chat_ip_limit,
+    dynamic_chat_session_limit,
+    limiter,
+)
 from app.db.session import get_db
 from app.repositories.chat_repo import ChatRepository
 from app.schemas.chat import ChatRequest, ChatResponse, Citation
@@ -14,7 +20,9 @@ router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+@limiter.limit(dynamic_chat_ip_limit)
+@limiter.limit(dynamic_chat_session_limit, key_func=chat_session_bucket)
+def chat(request: Request, payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     settings = get_settings()
     if len(payload.message) > settings.max_chat_message_chars:
         raise HTTPException(

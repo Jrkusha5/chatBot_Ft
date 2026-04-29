@@ -45,6 +45,13 @@ class Settings(BaseSettings):
         alias="MAX_FEEDBACK_COMMENT_CHARS",
     )
 
+    rate_limit_chat_per_ip: str = Field(default="60/minute", alias="RATE_LIMIT_CHAT_PER_IP")
+    rate_limit_chat_per_session: str = Field(
+        default="30/minute",
+        alias="RATE_LIMIT_CHAT_PER_SESSION",
+    )
+    rate_limit_ingest_per_ip: str = Field(default="10/minute", alias="RATE_LIMIT_INGEST_PER_IP")
+
     @field_validator("max_upload_bytes")
     @classmethod
     def _clamp_upload_bytes(cls, value: int) -> int:

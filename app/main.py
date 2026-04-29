@@ -2,6 +2,9 @@ import logging
 
 from fastapi import FastAPI
 from fastapi import Request
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.responses import JSONResponse
 
 from app.api.routes.health import router as health_router
@@ -12,6 +15,7 @@ from app.api.routes.feedback import router as feedback_router
 from app.api.routes.metrics import router as metrics_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.core.rate_limit import limiter
 from app.db.session import init_db
 from app.services.telemetry.metrics import metrics_store, now_ms
 from app.vectorstore.collection_manager import ensure_default_collection
@@ -21,6 +25,10 @@ settings = get_settings()
 configure_logging(settings.log_level)
 
 app = FastAPI(title=settings.app_name, debug=settings.app_debug)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.include_router(health_router)
 app.include_router(ingest_router)
 app.include_router(chat_router)

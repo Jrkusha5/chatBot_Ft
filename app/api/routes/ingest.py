@@ -1,9 +1,10 @@
 import hashlib
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.rate_limit import dynamic_ingest_ip_limit, limiter
 from app.db.session import get_db
 from app.repositories.source_repo import SourceRepository
 from app.schemas.ingest import IngestResponse
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/ingest", tags=["ingestion"])
 
 
 @router.post("/file", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(dynamic_ingest_ip_limit)
 async def ingest_file(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ) -> IngestResponse:
