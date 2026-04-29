@@ -16,6 +16,7 @@ from app.api.routes.metrics import router as metrics_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.core.rate_limit import limiter
+from app.db.migrations import run_migrations
 from app.db.session import init_db
 from app.services.telemetry.metrics import metrics_store, now_ms
 from app.vectorstore.collection_manager import ensure_default_collection
@@ -79,5 +80,6 @@ def on_startup() -> None:
             "APP_ENV=production: configure GEMINI_API_KEY, DATABASE_URL, and other secrets via your "
             "hosting provider (environment or secret manager). Do not rely on a committed .env file."
         )
+    run_migrations()
     init_db()
     ensure_default_collection()

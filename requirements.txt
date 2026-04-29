@@ -8,6 +8,7 @@ chromadb
 pypdf
 beautifulsoup4
 sqlalchemy
+alembic
 psycopg2-binary
 python-dotenv
 httpx
