@@ -22,7 +22,7 @@ Rate limiting (per IP and per chat session), request size limits, and structured
 |------|--------|
 | **Python** | 3.11+ recommended (matches project bytecode targets). |
 | **Gemini API key** | Required for embeddings and chat answers. [Google AI Studio](https://aistudio.google.com/) |
-| **Database** | Optional: defaults to **SQLite** (`sqlite:///./chatbot.db`). Use **PostgreSQL** in production via `DATABASE_URL`. |
+| **Database** | Use **PostgreSQL** in production via `DATABASE_URL`. |
 | **Disk** | ChromaDB persists under `CHROMA_PERSIST_DIR` (default `./.chroma`). |
 
 ---
